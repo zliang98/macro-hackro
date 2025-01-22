@@ -87,7 +87,7 @@ def check_coarse(file, name, channel, first_frame, last_frame, frames_percent, s
     f_frames_data = [im[i] for i in range(last_frame - num_frames_analysis, last_frame, 1)]
 
     # Check for saturation, posts saturation flag (flag = 2) if mode and maximal intensity values are same
-    if [np.max(frame) == calc_mode(frame) for frame in i_frames_data + f_frames_data].all():
+    if all([np.max(frame) == calc_mode(frame) for frame in i_frames_data + f_frames_data]):
         flag == 2
 
     if save_intermediates:

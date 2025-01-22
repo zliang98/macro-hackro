@@ -3,15 +3,15 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 
-headers = [
-    'Channel', 'Flags', 'Connectivity', 'Maximum Island Area', 'Maximum Void Area', 
-    'Island Area Change', 'Void Area Change', 'Initial Island Area 1', 
-    'Initial Island Area 2', 'Maximum Kurtosis', 'Maximum Median Skewness', 
-    'Maximum Mode Skewness', 'Kurtosis Change', 'Median Skewness Change', 
-    'Mode Skewness Change', 'Mean Speed', 'Speed Change',
-    'Mean Flow Direction', 'Flow Directional Spread']
 
 def write_file(output_filepath, data):
+    headers = [
+        'Channel', 'Flags', 'Connectivity', 'Maximum Island Area', 'Maximum Void Area', 
+        'Island Area Change', 'Void Area Change', 'Initial Maximum Island Area', 
+        'Initial 2nd Maximum Island Area', 'Maximum Kurtosis', 'Maximum Median Skewness', 
+        'Maximum Mode Skewness', 'Kurtosis Change', 'Median Skewness Change', 
+        'Mode Skewness Change', 'Mean Speed', 'Speed Change',
+        'Mean Flow Direction', 'Flow Directional Spread']
     if data:
         with open(output_filepath, 'w', newline='', encoding="utf-8") as csvfile:
             csvwriter = csv.writer(csvfile)
@@ -29,6 +29,13 @@ def write_file(output_filepath, data):
                     csvwriter.writerow([])
 
 def generate_aggregate_csv(filelist, csv_loc, gen_barcode, normalize, sort = None, separate_channel = False):
+    headers = [
+        'Channel', 'Flags', 'Connectivity', 'Maximum Island Area', 'Maximum Void Area', 
+        'Island Area Change', 'Void Area Change', 'Initial Maximum Island Area', 
+        'Initial 2nd Maximum Island Area', 'Maximum Kurtosis', 'Maximum Median Skewness', 
+        'Maximum Mode Skewness', 'Kurtosis Change', 'Median Skewness Change', 
+        'Mode Skewness Change', 'Mean Speed', 'Speed Change',
+        'Mean Flow Direction', 'Flow Directional Spread']
     if gen_barcode:
         combined_barcode_loc = os.path.join(os.path.dirname(csv_loc), f'{os.path.basename(csv_loc).removesuffix('.csv')} Barcode')
         
@@ -92,8 +99,15 @@ def generate_aggregate_csv(filelist, csv_loc, gen_barcode, normalize, sort = Non
         gen_combined_barcode(csv_data_2, combined_barcode_loc, normalize, sort, separate_channel)
 
 def gen_combined_barcode(data, figpath, normalize_data = True, sort = None, separate = True):    
+    headers = [
+        'Channel', 'Flags', 'Connectivity', 'Maximum Island Area', 'Maximum Void Area', 
+        'Island Area Change', 'Void Area Change', 'Initial Maximum Island Area', 
+        'Initial 2nd Maximum Island Area', 'Maximum Kurtosis', 'Maximum Median Skewness', 
+        'Maximum Mode Skewness', 'Kurtosis Change', 'Median Skewness Change', 
+        'Mode Skewness Change', 'Mean Speed', 'Speed Change',
+        'Mean Flow Direction', 'Flow Directional Spread']
     def add_units(metric):
-        percent_metrics = ['Maximum Island Area', 'Maximum Void Area', 'Initial Island Area 1', 'Initial Island Area 2']
+        percent_metrics = ['Maximum Island Area', 'Maximum Void Area', 'Initial Maximum Island Area', 'Initial 2nd Maximum Island Area']
         no_unit_metrics = ['Maximum Kurtosis', 'Maximum Median Skewness', 'Maximum Mode Skewness', 'Kurtosis Change', 'Median Skewness Change', 'Mode Skewness Change']
         percent_change_metrics = ['Void Area Change', 'Island Area Change']
         directional_metrics = ['Mean Flow Direction', 'Flow Directional Spread']
@@ -130,8 +144,8 @@ def gen_combined_barcode(data, figpath, normalize_data = True, sort = None, sepa
 
     flags = data[:,1]
     params = {'Connectivity': 0, 'Maximum Island Area': 1, 'Maximum Void Area': 2, 
-            'Island Area Change': 3, 'Void Area Change': 4, 'Initial Island Area 1': 5, 
-            'Initial Island Area 2': 6, 'Maximum Kurtosis': 7, 'Maximum Median Skewness': 8, 
+            'Island Area Change': 3, 'Void Area Change': 4, 'Initial Maximum Island Area': 5, 
+            'Initial 2nd Maximum Island Area': 6, 'Maximum Kurtosis': 7, 'Maximum Median Skewness': 8, 
             'Maximum Mode Skewness': 9, 'Kurtosis Change': 10, 'Median Skewness Change': 11, 
             'Mode Skewness Change': 12, 'Mean Speed': 13, 'Speed Change': 14,
             'Mean Flow Direction': 15, 'Flow Directional Spread': 16}
