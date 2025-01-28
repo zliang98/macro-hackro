@@ -1,11 +1,12 @@
 from reader import read_file
-import os, yaml, time, functools, builtins
+import os, yaml, time, functools, builtins, nd2
 from binarization import check_resilience
 from flow import check_flow
 from intensity_distribution_comparison import check_coarse
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from itertools import pairwise
 from writer import write_file, gen_combined_barcode
 
 class MyException(Exception):
@@ -52,13 +53,20 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
             rfig = None
             binarization_outputs = [None] * 7
         if flow == True:
-            downsample = flow_data['downsample']
-            frame_interval = flow_data['frame_interval']
-            frame_step = flow_data['frame_step']
-            nm_pix_ratio = flow_data['nm_pixel_ratio']
-            win_size = flow_data['win_size']
+            downsample = int(flow_data['downsample'])
+            frame_step = int(flow_data['frame_step'])
+            win_size = int(flow_data['win_size'])
+            # Automatically reads ND2 file metadata for frame interval and nm-pixel-ratio
+            if nd2.is_supported_file(filepath):
+                with nd2.ND2File(filepath) as ndfile:
+                    times = ndfile.events(orient = 'list')['Time [s]']
+                    frame_interval = np.array([y - x for x, y in pairwise(times)]).mean()
+                    nm_pix_ratio = 1000/(ndfile.voxel_size()[0])
+            else:
+                frame_interval = flow_data['frame_interval']
+                nm_pix_ratio = flow_data['nm_pixel_ratio']
             try:
-                flow_outputs = check_flow(file, fig_channel_dir_name, channel, int(frame_step), downsample, frame_interval, nm_pix_ratio, return_graphs, save_intermediates, verbose, int(win_size))
+                flow_outputs = check_flow(file, fig_channel_dir_name, channel, frame_step, downsample, frame_interval, nm_pix_ratio, return_graphs, save_intermediates, verbose, win_size)
             except Exception as e:
                 with open(fail_file_loc, "a", encoding="utf-8") as log_file:
                     log_file.write(f"File: {file_path}, Module: Optical Flow, Exception: {str(e)}\n")
@@ -128,7 +136,6 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
                 vprint('Warning: channel is dim. Accuracy of screening may be limited by this.')
                 results = check(filepath, channel, resilience, flow, coarsening, r_data, f_data, c_data, fail_file_loc)
                 results[1] = results[1] + 1
-                
             else:
                 results = check(filepath, channel, resilience, flow, coarsening, r_data, f_data, c_data, fail_file_loc)
             rfc.append(results)
