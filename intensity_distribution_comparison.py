@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.set_loglevel("critical")
 import matplotlib.pyplot as plt
 import csv, os, functools, builtins
 from scipy.stats import mode, kurtosis
@@ -78,7 +80,7 @@ def check_coarse(file, name, channel, first_frame, last_frame, frames_percent, s
     fig, ax = plt.subplots(figsize=(5,5))
 
     if (im == 0).all(): # If image is blank, then end program early
-        return np.nan, [np.nan] * 6, np.nan
+        return None, [np.nan] * 6, 1
     
     max_px_intensity = 1.1*np.max(im)
     bins_width = 3
@@ -144,17 +146,18 @@ def check_coarse(file, name, channel, first_frame, last_frame, frames_percent, s
         
     i_mean = np.mean(i_frame)
     f_mean = np.mean(f_frame)
+
+    final_frame = len(im) - 1 if last_frame == False else last_frame
     
     ax.plot(plt_bins[::10], i_count[::10], '^-', ms=4, c='darkred', alpha=0.6, label= "Frame " + str(first_frame)+" Intensity Distribution")
-    ax.plot(plt_bins[::10], f_count[::10], 'v-', ms=4, c='purple',   alpha=0.6, label= "Frame " + str(last_frame)+" Intensity Distribution")
+    ax.plot(plt_bins[::10], f_count[::10], 'v-', ms=4, c='purple',   alpha=0.6, label= "Frame " + str(final_frame)+" Intensity Distribution")
     ax.axvline(x=i_mean, ms = 4, c = 'darkred', alpha=1, label="Frame " + str(first_frame)+" Mean")
-    ax.axvline(x=f_mean, ms = 4, c = 'purple', alpha=1, label="Frame " + str(last_frame)+" Mean")
-
+    ax.axvline(x=f_mean, ms = 4, c = 'purple', alpha=1, label="Frame " + str(final_frame)+" Mean")
     ax.axhline(0, color='dimgray', alpha=0.6)
     ax.set_xlabel("Pixel intensity value")
     ax.set_ylabel("Probability")
     ax.set_yscale('log')
     ax.set_xlim(0,max_px_intensity)
     ax.legend()
-    
+
     return fig, [max_kurt, max_median_skew, max_mode_skew, kurt_diff, median_skew_diff, mode_skew_diff], flag

@@ -1,11 +1,11 @@
-import sys, yaml
+import sys, yaml, os
 from barcoder import process_directory
 from gooey import Gooey, GooeyParser
 from writer import generate_aggregate_csv
 
-@Gooey(program_name="BARCODE Program", tabbed_groups=True, navigation='Tabbed')
+@Gooey(program_name="BARCODE", tabbed_groups=True, navigation='Tabbed')
 def main():
-    parser = GooeyParser(description='Code that runs through the BARCODE code developed by the DMREF group')
+    parser = GooeyParser(description='Biomaterial Activity Readouts to Categorize, Optimize, Design and Engineer (BARCODE)')
 
     gc = parser.add_argument_group("Execution Settings")
 
@@ -26,19 +26,18 @@ def main():
     fdc.add_argument('--barcode_generation', metavar='Combine CSV files/Generate Barcodes', help='Click to combine summary CSV files and generate barcodes', widget='CheckBox', action='store_true')
 
     # Reader Execution Settings
-    gc.add_argument('--check_resilience', metavar='Binarization', help='Evaluate sample(s) using binarization module', widget='CheckBox', action='store_true')
-    gc.add_argument('--check_flow', metavar='Optical Flow', help='Evaluate sample(s) using optical flow module', widget='CheckBox',  action='store_true')
-    gc.add_argument('--check_coarsening', metavar='Intensity Distribution', help='Evaluate sample(s) using intensity distribution module', widget='CheckBox', action='store_true')
+    gc.add_argument('--check_resilience', metavar='Binarization', help='Evaluate video(s) using binarization branch', widget='CheckBox', action='store_true')
+    gc.add_argument('--check_flow', metavar='Optical Flow', help='Evaluate video(s) using optical flow branch', widget='CheckBox',  action='store_true')
+    gc.add_argument('--check_coarsening', metavar='Intensity Distribution', help='Evaluate video(s) using intensity distribution branch', widget='CheckBox', action='store_true')
     gc.add_argument('--dim_images', metavar='Include Dim Files', help='Click to scan files that may be too dim to accurately profile', widget='CheckBox', action='store_true')
     gc.add_argument('--dim_channels', metavar='Include Dim Channels', help='Click to scan channels that may be too dim to accurately profile', widget='CheckBox', action='store_true')
 
     # Writer Data
     gc.add_argument('--verbose', metavar='Verbose', help='Show more details', widget='CheckBox', action='store_true')
     gc.add_argument('--return_graphs', metavar='Save Graphs', help='Click to save graphs representing sample changes', widget='CheckBox', action='store_true')
-    gc.add_argument('--return_intermediates', metavar='Save Intermediates', help='Click to save intermediate data structures (flow fields, binarized images, intensity distributions)', widget='CheckBox', action='store_true')
+    gc.add_argument('--return_intermediates', metavar='Save Reduced Data Structures', help='Click to save reduced data structures (flow fields, binarized images, intensity distributions) for further analysis', widget='CheckBox', action='store_true')
     
     gc.add_argument('--stitch_barcode', metavar='Dataset Barcode', help="Generates an aggregate barcode for the dataset", widget="CheckBox", action='store_true')
-    gc.add_argument('--normalize_data', metavar='Normalize Dataset Barcode', help='Uses the dataset to generate a normalized aggregate barcode for the dataset', widget='CheckBox', action='store_true')
 
     gc.add_argument('--configuration_file', metavar='Configuration YAML File', help="Load a preexisting configuration file for the settings", widget="FileChooser", gooey_options = {
         'wildcard': "YAML (*.yaml)|*.yaml|"
@@ -99,15 +98,14 @@ def main():
         'max': 10 ** 3
     })
     
-
     coarse_settings = parser.add_argument_group('Intensity Distribution Settings')
 
-    coarse_settings.add_argument('--first_frame', metavar='First Frame', help = 'Controls which frame is used as the first frame for intensity distribution comparisons', widget='IntegerField', gooey_options = {
+    coarse_settings.add_argument('--first_frame', metavar='First Frame', help = 'Controls the starting frame of the initial frame segment for intensity distribution comparisons', widget='IntegerField', gooey_options = {
         'min':1,
         'increment':1
     })
 
-    coarse_settings.add_argument('--last_frame', metavar = 'Last Frame', help = "Select which frame is used as the second frame for intensity distribution comparisons (0 for the final frame of video)", widget = 'IntegerField', default=0, gooey_options = {
+    coarse_settings.add_argument('--last_frame', metavar = 'Last Frame', help = "Select the ending frame of the second frame segment for intensity distribution comparisons (0 for the final frame of video)", widget = 'IntegerField', default=0, gooey_options = {
         'min':0,
         'increment':1
     })
@@ -125,7 +123,6 @@ def main():
         'default_file': "aggregate_summary.csv"
     })
     barcode_generator.add_argument('--generate_agg_barcode', metavar = 'Generate Aggregate Barcode', widget='CheckBox', help="Click to generate an aggregate barcode from these files", action="store_true")
-    barcode_generator.add_argument('--normalize_agg_barcode', metavar = 'Normalize Aggregate Barcode', widget='CheckBox', help="Click to normalize the barcode (color will be determined by the limits of the dataset)", action='store_true')
 
     headers = ['Default', 'Connectivity', 'Maximum Island Area', 'Maximum Void Area', 
             'Void Area Change', 'Island Area Change', 'Initial Island Area 1', 
@@ -134,7 +131,7 @@ def main():
             'Mode Skewness Difference', 'Mean Speed', 'Speed Change',
             'Mean Flow Direction', 'Flow Directional Spread']
 
-    barcode_generator.add_argument('--sort', metavar = 'Parameter Sort', widget = 'Dropdown', help='Select a parameter to sort the barcode on', choices = headers)
+    barcode_generator.add_argument('--sort', metavar = 'Metric Sort', widget = 'Dropdown', help='Select a parameter to sort the barcode on', choices = headers)
     
     
     settings = parser.parse_args()
@@ -144,9 +141,8 @@ def main():
         combined_csv_loc = settings.combined_location
 
         gen_barcode = settings.generate_agg_barcode
-        normalize_data = settings.normalize_agg_barcode
         sort_param = None if settings.sort == 'Default' else settings.sort
-        generate_aggregate_csv(files, combined_csv_loc, gen_barcode, normalize_data, sort_param)
+        generate_aggregate_csv(files, combined_csv_loc, gen_barcode, sort_param)
         
     else:
         if not (settings.dir_path or settings.file_path):
@@ -162,13 +158,12 @@ def main():
         if settings.configuration_file:
             with open(settings.configuration_file, 'r') as f:
                 config_data = yaml.load(f, Loader=yaml.FullLoader)
-                # if config_data['reader']['channel_select'] == 'All':
-                #     config_data['reader']['channel_select']
 
         else: 
             config_data = set_config_data(settings)
 
-        print(dir_name, flush = True)
+        if os.path.isdir(dir_name):
+            print(dir_name, flush = True)
 
         process_directory(dir_name, config_data)
 
@@ -192,7 +187,6 @@ def set_config_data(args = None):
         }
         
         writer_data = {
-            'normalize_data':args.normalize_data,
             'return_intermediates':args.return_intermediates,
             'stitch_barcode':args.stitch_barcode
         }

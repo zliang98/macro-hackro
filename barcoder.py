@@ -4,10 +4,13 @@ from binarization import check_resilience
 from flow import check_flow
 from intensity_distribution_comparison import check_coarse
 import numpy as np
+import matplotlib
+matplotlib.set_loglevel("critical")
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from itertools import pairwise
 from writer import write_file, gen_combined_barcode
+from copy import copy
 
 class MyException(Exception):
     pass
@@ -37,7 +40,7 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
         if not os.path.exists(fig_channel_dir_name):
             os.makedirs(fig_channel_dir_name)
         
-        if resilience == True:
+        if resilience:
             r_offset = resilience_data['r_offset']
             f_step = resilience_data['frame_step']
             f_start = resilience_data['evaluation_settings']['f_start']
@@ -48,11 +51,11 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
                 with open(fail_file_loc, "a", encoding="utf-8") as log_file:
                     log_file.write(f"File: {file_path}, Module: Binarization, Exception: {str(e)}\n")
                 rfig = None
-                binarization_outputs = [None] * 7
+                binarization_outputs = [np.nan] * 7
         else:
             rfig = None
-            binarization_outputs = [None] * 7
-        if flow == True:
+            binarization_outputs = [np.nan] * 7
+        if flow:
             downsample = int(flow_data['downsample'])
             frame_step = int(flow_data['frame_step'])
             win_size = int(flow_data['win_size'])
@@ -70,10 +73,10 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
             except Exception as e:
                 with open(fail_file_loc, "a", encoding="utf-8") as log_file:
                     log_file.write(f"File: {file_path}, Module: Optical Flow, Exception: {str(e)}\n")
-                flow_outputs = [None] * 4
+                flow_outputs = [np.nan] * 4
         else:
-            flow_outputs = [None] * 4
-        if coarse == True:
+            flow_outputs = [np.nan] * 4
+        if coarse:
             fframe = coarse_data['evaluation_settings']['first_frame']
             lframe = coarse_data['evaluation_settings']['last_frame']
             percent_frames = coarse_data['mean_mode_frames_percent']
@@ -82,33 +85,30 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
             except Exception as e:
                 with open(fail_file_loc, "a", encoding="utf-8") as log_file:
                     log_file.write(f"File: {file_path}, Module: Intensity Distribution, Exception: {str(e)}\n")
-                cfig = None
-                id_outputs = [None] * 6
-                flag = None
+                cfig = np.nan
+                id_outputs = [np.nan] * 6
+                flag = np.nan
         else:
             cfig = None
-            id_outputs = [None] * 6
-            flag = None
+            id_outputs = [np.nan] * 6
+            flag = np.nan
 
         figpath = os.path.join(fig_channel_dir_name, 'Summary Graphs.png')
-        if return_graphs == True:
-            fig = plt.figure(figsize = (10, 5))
-            gs = gridspec.GridSpec(1,2)
-
+        if return_graphs == True and (resilience or coarse):
+            num_figs = len(list(filter(None, [rfig, cfig])))
+            fig = plt.figure(figsize = (5 * num_figs, 5))
             if rfig != None:
-                ax1 = rfig.axes[0]
-                ax1.remove()
+                ax1 = copy(rfig.axes[0])
                 ax1.figure = fig
                 fig.add_axes(ax1)
-                ax1.set_position([1.5/10, 1/10, 4/5, 4/5])
-
+                if num_figs == 2:
+                    ax1.set_position([1.5/10, 1/10, 4/5, 4/5])
             if cfig != None:               
-                ax3 = cfig.axes[0]
-                ax3.remove()
+                ax3 = copy(cfig.axes[0])
                 ax3.figure = fig
                 fig.add_axes(ax3)
-                ax3.set_position([11.5/10, 1/10, 4/5, 4/5])
-
+                if num_figs == 2:
+                    ax3.set_position([11.5/10, 1/10, 4/5, 4/5])
             plt.savefig(figpath)
             plt.close(fig)
         plt.close('all')
@@ -117,8 +117,11 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
         vprint('Channel Screening Completed')
             
         return result
-    
-    file = read_file(filepath, count, total, accept_dim_im)
+    try:
+        file = read_file(filepath, count, total, accept_dim_im)
+    except TypeError as e:
+        raise TypeError(e)
+    print(f'File Dimensions: {file.shape}')
     if (isinstance(file, np.ndarray) == False):
         raise TypeError("File was not of the correct filetype")
     
@@ -165,11 +168,12 @@ def remove_extension(filepath):
 def process_directory(root_dir, config_data):
     verbose = config_data['reader']['verbose']
     writer_data = config_data['writer']
-    normalize_data, _, stitch_barcode = writer_data.values()
+    _, stitch_barcode = writer_data.values()
     print = functools.partial(builtins.print, flush=True)
     vprint = print if verbose else lambda *a, **k: None
     
     if os.path.isfile(root_dir):
+        channel_select = config_data['reader']['channel_select']
         all_data = []
         file_path = root_dir
         filename = os.path.basename(file_path)
@@ -184,11 +188,15 @@ def process_directory(root_dir, config_data):
         file_count = 1
         try:
             rfc_data, file_count = execute_htp(file_path, config_data, ff_loc, file_count, total=1)
+        except TypeError as e:
+            print(e)
+            return
         except Exception as e:
             with open(ff_loc, "a", encoding="utf-8") as log_file:
                 log_file.write(f"File: {file_path}, Exception: {str(e)}\n")
         if rfc_data == None:
-            raise TypeError("Please input valid file type ('.nd2', '.tif')")
+            print("Please input valid file type ('.nd2', '.tif')")
+            return
         all_data.append([filename])
         all_data.extend(rfc_data)
         all_data.append([])
@@ -211,7 +219,10 @@ def process_directory(root_dir, config_data):
         
         if stitch_barcode:
             output_figpath = os.path.join(dir_name, filename + ' summary barcode')
-            gen_combined_barcode(np.array(rfc_data), output_figpath, normalize_data)
+            if channel_select == "All":
+                gen_combined_barcode(np.array(rfc_data), output_figpath, separate = False)
+            else:
+                gen_combined_barcode(np.array(rfc_data), output_figpath)
 
         settings_loc = os.path.join(dir_name, filename + " settings.yaml")
         with open(settings_loc, 'w+', encoding="utf-8") as ff:
@@ -245,11 +256,8 @@ def process_directory(root_dir, config_data):
                 start_time = time.time()
                 try:
                     rfc_data, file_itr = execute_htp(file_path, config_data, ff_loc, file_itr, file_count)
-                except TypeError:
-                    # for ending in ["failed_files.txt", "time.txt", ".csv", ".yaml", "Flow Field.png", "Summary Graphs.png", "Comparison.png", "Thumbs.db"]:
-                    #     if file_path.endswith(ending) or 'Barcode_channel_' in file_path:
-                    #         file_itr -= 1 
-                    # file_itr += 1
+                except TypeError as e:
+                    print(e)
                     continue
                 except Exception as e:
                     with open(ff_loc, "a", encoding="utf-8") as log_file:
@@ -292,7 +300,7 @@ def process_directory(root_dir, config_data):
         if stitch_barcode:
             try:
                 output_figpath = os.path.join(root_dir, os.path.basename(root_dir) + '_Summary Barcode')
-                gen_combined_barcode(np.array(all_rfc_data), output_figpath, normalize_data)
+                gen_combined_barcode(np.array(all_rfc_data), output_figpath)
             except Exception as e:
                 with open(ff_loc, "a", encoding="utf-8") as log_file:
                     log_file.write(f"Unable to generate barcode, Exception: {str(e)}\n")

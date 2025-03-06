@@ -31,26 +31,26 @@ def read_file(file_path, count, total_count, accept_dim = False, allow_large_fil
     if file_path.endswith('.tif'):
         file = iio.imread(file_path)
         file = np.reshape(file, (file.shape + (1,))) if len(file.shape) == 3 else file
-
+        if file.shape[3] != min(file.shape):
+            file = np.swapaxes(np.swapaxes(file, 1, 2), 2, 3)
     elif file_path.endswith('.nd2'):
         try:
             with nd2.ND2File(file_path) as ndfile:
-                if len(ndfile.shape) >= 5 or "Z" in ndfile.sizes:
-                    print('Z-stack identified, skipping to next file...')
-                    return None
+                if len(ndfile.sizes) >= 5:
+                    raise TypeError("Incorrect file dimensions: file must be time series data with 1+ channels (4 dimensions total)")
+                if "Z" in ndfile.sizes:
+                    raise TypeError('Z-stack identified, skipping to next file...')
                 if 'T' not in ndfile.sizes or len(ndfile.shape) <= 2 or ndfile.sizes['T'] <= 5:
-                    print('Too few frames, unable to capture dynamics, skipping to next file...')
-                    return None
+                    raise TypeError('Too few frames, unable to capture dynamics, skipping to next file...')
                 if ndfile == None:
-                    print('No file detected, skipping to next file...')
-                    return None
+                    raise TypeError('Unable to read file, skipping to next file...')
                 file = ndfile.asarray()
                 shape = (file.shape[0], file.shape[2], file.shape[3], file.shape[1]) # Reorder
                 file = np.swapaxes(np.swapaxes(file, 1, 2), 2, 3)
 
         except Exception as e:
-            print(f'Unable to read file, skipping to next file...')
-            return None
+            raise TypeError(e)
+            
         if isinstance(file, np.ndarray) == False:
             return None
         

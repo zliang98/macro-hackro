@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.set_loglevel("critical")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import csv, os, functools, builtins
@@ -179,7 +181,7 @@ def check_resilience(file, name, channel, R_offset = 0.1, frame_step = 10, frame
 
     # Error Checking: Empty Image
     if (image == 0).all():
-        return [np.nan] * 6
+        return None, [np.nan] * 7
     
     while len(image) <= frame_step:
         frame_step = int(frame_step / 5)

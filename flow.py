@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.set_loglevel("critical")
 import matplotlib.pyplot as plt
 import cv2 as cv
 import os, csv, functools, builtins
@@ -79,6 +81,8 @@ def check_flow(file, name, channel, frame_stride, downsample, frame_interval, nm
             ticks_adj = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x * downsample))
             ax.xaxis.set_major_formatter(ticks_adj)
             ax.yaxis.set_major_formatter(ticks_adj)
+            ax.set_aspect(aspect=1, adjustable='box')
+
             fig.savefig(figpath)
             plt.close(fig)
         
@@ -137,6 +141,6 @@ def check_flow(file, name, channel, frame_stride, downsample, frame_interval, nm
     theta = thetas.mean() # Metric for average direction of flow (-pi, pi) # "Flow Direction"
     sigma_theta = sigma_thetas.mean() # Metric for st. dev of flow (-pi, pi) # "Flow Directional Spread"
     mean_speed = speeds.mean() # Metric for avg. speed (units of nm/s) # Average speed
-    # Calculate delta speed as (v_f - v_i) / (t_f - t_i)
+    # Calculate delta speed as (v_f - v_i)
     delta_speed = speeds[-1] - speeds[0]
     return [mean_speed, delta_speed, theta, sigma_theta]

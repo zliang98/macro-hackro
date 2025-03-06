@@ -1,7 +1,10 @@
 import os, csv
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+mpl.set_loglevel("critical")
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def write_file(output_filepath, data):
@@ -28,7 +31,7 @@ def write_file(output_filepath, data):
                     # Write an empty row
                     csvwriter.writerow([])
 
-def generate_aggregate_csv(filelist, csv_loc, gen_barcode, normalize, sort = None, separate_channel = False):
+def generate_aggregate_csv(filelist, csv_loc, gen_barcode, sort = None, separate_channel = False):
     headers = [
         'Channel', 'Flags', 'Connectivity', 'Maximum Island Area', 'Maximum Void Area', 
         'Island Area Change', 'Void Area Change', 'Initial Maximum Island Area', 
@@ -37,7 +40,7 @@ def generate_aggregate_csv(filelist, csv_loc, gen_barcode, normalize, sort = Non
         'Mode Skewness Change', 'Mean Speed', 'Speed Change',
         'Mean Flow Direction', 'Flow Directional Spread']
     if gen_barcode:
-        combined_barcode_loc = os.path.join(os.path.dirname(csv_loc), f'{os.path.basename(csv_loc).removesuffix('.csv')} Barcode')
+        combined_barcode_loc = os.path.join(os.path.dirname(csv_loc), f"{os.path.basename(csv_loc).removesuffix('.csv')} Barcode")
         
     def combine_csvs(csv_list, keep_csv = False):
         if not keep_csv:
@@ -96,9 +99,9 @@ def generate_aggregate_csv(filelist, csv_loc, gen_barcode, normalize, sort = Non
 
     if gen_barcode:
         csv_data_2 = csv_data[1:]
-        gen_combined_barcode(csv_data_2, combined_barcode_loc, normalize, sort, separate_channel)
+        gen_combined_barcode(csv_data_2, combined_barcode_loc, sort, separate_channel)
 
-def gen_combined_barcode(data, figpath, normalize_data = True, sort = None, separate = True):    
+def gen_combined_barcode(data, figpath, sort = None, separate = True):    
     headers = [
         'Channel', 'Flags', 'Connectivity', 'Maximum Island Area', 'Maximum Void Area', 
         'Island Area Change', 'Void Area Change', 'Initial Maximum Island Area', 
@@ -138,9 +141,7 @@ def gen_combined_barcode(data, figpath, normalize_data = True, sort = None, sepa
         return
     channels = data[:,0]
     unique_channels = np.unique(channels)
-
     unique_channels = unique_channels[~np.isnan(unique_channels)]
-
 
     flags = data[:,1]
     params = {'Connectivity': 0, 'Maximum Island Area': 1, 'Maximum Void Area': 2, 
@@ -162,7 +163,7 @@ def gen_combined_barcode(data, figpath, normalize_data = True, sort = None, sepa
     binarized_static_limits = [0, 1]
     direction_static_limits = [-np.pi, np.pi]
     direction_spread_static_limit = [0, np.pi]
-    change_limits = {3:1, 4:1, 10:0, 11:0, 12:0, 14:0}
+    change_limits = {3:1, 4:1, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0, 14:0}
     
     def check_limits(limit, thresh):
         if thresh < limit[0]:
@@ -173,7 +174,7 @@ def gen_combined_barcode(data, figpath, normalize_data = True, sort = None, sepa
 
     for i in range(num_params - 2):
         static_indices = [0, 1, 2, 5, 6, 15, 16]
-        if i in static_indices and normalize_data == False:
+        if i in static_indices:
             if i in static_indices[:-2]:
                 limits[i] = binarized_static_limits
             elif i == static_indices[-2]:
