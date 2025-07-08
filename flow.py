@@ -101,8 +101,8 @@ def check_flow(file, name, channel, frame_stride, downsample, frame_interval, nm
     if (images == 0).all():
        return [np.nan] * 4
     
-    end_point = int(len(images)/frame_stride) * frame_stride
-    while end_point == 0: # Checking to see if frame_stride is too large
+    end_point = (int(len(images)/frame_stride) - 1) * frame_stride
+    while end_point <= 0: # Checking to see if frame_stride is too large
         frame_stride = int(np.ceil(frame_stride / 5))
         vprint('Flow field frame step too large for video, dynamically adjusting, new frame step:', frame_stride)
         end_point = int(len(images)/frame_stride) * frame_stride
@@ -129,7 +129,7 @@ def check_flow(file, name, channel, frame_stride, downsample, frame_interval, nm
     # If interval between frames does not reach end of video, add additional calculation step
     if end != len(images) - 1:
         beg = end
-        end = len(images)
+        end = len(images) - 1
         execute_opt_flow(images, beg, end, pos, thetas, sigma_thetas, speeds, csvwriter)
         
     # Close the CSV intermediate file

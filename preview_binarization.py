@@ -25,6 +25,8 @@ def load_first_frame(file_path):
         img = tifffile.imread(file_path)
         if img.ndim == 3:
             return img[0]
+        if img.ndim == 4:
+            return img[0,:,:,0]
         return img
     elif ext == 'nd2' and ND2Reader:
         with ND2Reader(file_path) as images:

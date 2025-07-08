@@ -889,7 +889,7 @@ def main ():
                     self.widget.see('end')
                     self.widget.configure(state='disabled')
                 except:
-                    raise Exception("Error with text")
+                    raise Exception("Program Terminated Early")
             def flush(self):
                 pass
 
