@@ -1,10 +1,10 @@
 import numpy as np
-import matplotlib
-matplotlib.set_loglevel("critical")
 import matplotlib.pyplot as plt
 import cv2 as cv
 import os, csv, functools, builtins
 import matplotlib.ticker as ticker
+import matplotlib
+matplotlib.use('Agg')
 
 """
 Takes an average downsampling of 2D array to go from array of dimension (x, y) to (x/N, y/N)
@@ -54,6 +54,8 @@ def check_flow(file, name, channel, frame_stride, downsample, frame_interval, nm
     @param writer
     """
     def execute_opt_flow(images, start, stop, pos, thetas, sigma_thetas, speeds, writer):
+        if stop == start:
+            return
         flow = cv.calcOpticalFlowFarneback(images[start], images[stop], None, 0.5, 3, winsize, 3, 5, 1.2, 0)
         flow_reduced = groupAvg(flow, downsample)
         downU = flow_reduced[:,:,0]
@@ -69,6 +71,7 @@ def check_flow(file, name, channel, frame_stride, downsample, frame_interval, nm
             writer.writerow(["Y-Direction"])
             writer.writerows(downV)
         speed = (downU ** 2 + downV ** 2) ** (1/2)
+        speed = speed * 1/(frame_interval) * 1/(stop - start) * nm_pix_ratio
 
         mid_point_arr = range(0, end_point, frame_stride)
         mid_point = mid_point_arr[int((len(mid_point_arr) - 1)/2)]
@@ -84,26 +87,25 @@ def check_flow(file, name, channel, frame_stride, downsample, frame_interval, nm
             ax.set_aspect(aspect=1, adjustable='box')
 
             fig.savefig(figpath)
-            plt.close(fig)
+            plt.close('all')
         
         # Convert speed from pixels / interval to nm/sec
         # Conversion: px/interval * interval/frame * 1/(sec/frame) * nm/px
-        avg_speed = np.mean(speed) * 1/(frame_interval) * 1/(frame_stride) * nm_pix_ratio
         thetas.append(np.mean(directions))
         sigma_thetas.append(np.std(directions))
-        speeds.append(avg_speed)
+        speeds.append(np.mean(speed))
         return
 
     images = file[:,:,:,channel]
     # Error Checking: Empty Images
     if (images == 0).all():
        return [np.nan] * 4
-
-    end_point = len(images) - frame_stride
-    while end_point <= 0: # Checking to see if frame_stride is too large
+    
+    end_point = int(len(images)/frame_stride) * frame_stride
+    while end_point == 0: # Checking to see if frame_stride is too large
         frame_stride = int(np.ceil(frame_stride / 5))
         vprint('Flow field frame step too large for video, dynamically adjusting, new frame step:', frame_stride)
-        end_point = len(images) - frame_stride
+        end_point = int(len(images)/frame_stride) * frame_stride
 
 
     thetas = []
@@ -125,9 +127,9 @@ def check_flow(file, name, channel, frame_stride, downsample, frame_interval, nm
         execute_opt_flow(images, beg, end, pos, thetas, sigma_thetas, speeds, csvwriter)
         pos += 1
     # If interval between frames does not reach end of video, add additional calculation step
-    if end_point != len(images) - 1:
+    if end != len(images) - 1:
         beg = end
-        end = len(images) - 1
+        end = len(images)
         execute_opt_flow(images, beg, end, pos, thetas, sigma_thetas, speeds, csvwriter)
         
     # Close the CSV intermediate file

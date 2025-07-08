@@ -5,12 +5,11 @@ from flow import check_flow
 from intensity_distribution_comparison import check_coarse
 import numpy as np
 import matplotlib
-matplotlib.set_loglevel("critical")
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from itertools import pairwise
 from writer import write_file, gen_combined_barcode
-from copy import copy
+matplotlib.use('Agg')
 
 class MyException(Exception):
     pass
@@ -98,13 +97,13 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
             num_figs = len(list(filter(None, [rfig, cfig])))
             fig = plt.figure(figsize = (5 * num_figs, 5))
             if rfig != None:
-                ax1 = copy(rfig.axes[0])
+                ax1 = rfig.axes[0]
                 ax1.figure = fig
                 fig.add_axes(ax1)
                 if num_figs == 2:
                     ax1.set_position([1.5/10, 1/10, 4/5, 4/5])
             if cfig != None:               
-                ax3 = copy(cfig.axes[0])
+                ax3 = cfig.axes[0]
                 ax3.figure = fig
                 fig.add_axes(ax3)
                 if num_figs == 2:
@@ -118,9 +117,13 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
             
         return result
     try:
-        file = read_file(filepath, count, total, accept_dim_im)
+        counts = [count, total]
+        file = read_file(filepath, counts, accept_dim_im)
+        count, total = counts
     except TypeError as e:
         raise TypeError(e)
+    if file is None:
+        raise TypeError("File not read by BARCODE.")
     print(f'File Dimensions: {file.shape}')
     if (isinstance(file, np.ndarray) == False):
         raise TypeError("File was not of the correct filetype")
@@ -157,7 +160,7 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
             results = check(filepath, channel_select, resilience, flow, coarsening, r_data, f_data, c_data, fail_file_loc)
         rfc.append(results)
 
-    return rfc, count + 1
+    return rfc, count
 
 def remove_extension(filepath):
     if filepath.endswith('.tif'):
@@ -257,6 +260,8 @@ def process_directory(root_dir, config_data):
                 try:
                     rfc_data, file_itr = execute_htp(file_path, config_data, ff_loc, file_itr, file_count)
                 except TypeError as e:
+                    if "BARCODE" in str(e):
+                        continue
                     print(e)
                     continue
                 except Exception as e:

@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib
-matplotlib.set_loglevel("critical")
 import matplotlib.pyplot as plt
 import csv, os, functools, builtins
 from scipy.stats import mode, kurtosis
@@ -28,34 +26,6 @@ def top_ten_average(lst):
     length = len(lst)
     top_ten_percent = int(np.ceil(length * 0.1))
     return np.mean(lst[0:top_ten_percent])
-
-def populate_intensity_array(video, first, last, ignore_saturation = True):
-    i_arr = []
-    dropped_frames = 0
-    inc = 1 if first < last else -1
-    frame_no = first
-    while len(i_arr) < np.abs(last - first):
-        if frame_no >= len(video) or frame_no < 0:
-            return None, None, None
-        frame = video[frame_no]
-        f_mode = calc_mode(frame)
-        f_max = np.max(frame)
-        while f_max == f_mode:
-            frame_no += inc
-            if (frame_no >= len(video) or frame_no < 0) and not ignore_saturation:
-                return None, None, None
-            elif (frame_no >= len(video) or frame_no < 0):
-                i_arr = [video[i] for i in range(first, last, inc)]
-                dropped_frames = len(video)
-                frame_no = last
-                return np.array(i_arr), dropped_frames, frame_no
-            frame = video[frame_no]
-            f_mode = calc_mode(frame)
-            f_max = np.max(frame)
-            dropped_frames += 1
-        i_arr.append(frame)
-        frame_no += inc
-    return np.array(i_arr), dropped_frames, frame_no
 
 def calc_frame_metric(metric, data):
     mets = []
@@ -85,7 +55,12 @@ def check_coarse(file, name, channel, first_frame, last_frame, frames_percent, s
     max_px_intensity = 1.1*np.max(im)
     bins_width = 3
 
-    i_frames_data = [im[i] for i in range(0, num_frames_analysis, 1)]
+    if first_frame + num_frames_analysis >= num_frames:
+        first_frame = 0
+    if last_frame + num_frames - num_frames_analysis < 0:
+        last_frame = 0
+    
+    i_frames_data = [im[i] for i in range(first_frame, first_frame + num_frames_analysis, 1)]
     f_frames_data = [im[i] for i in range(last_frame - num_frames_analysis, last_frame, 1)]
 
     # Check for saturation, posts saturation flag (flag = 2) if mode and maximal intensity values are same
@@ -105,7 +80,8 @@ def check_coarse(file, name, channel, first_frame, last_frame, frames_percent, s
                 csvwriter.writerow([])
 
             for frame_idx in range(last_frame, last_frame - num_frames_analysis, -1):
-                csvwriter.writerow(['Frame ' + str(frame_idx)])
+                frame_idx_adjusted = num_frames + frame_idx if frame_idx < 0 else frame_idx
+                csvwriter.writerow(['Frame ' + str(frame_idx_adjusted)])
                 frame_data = im[frame_idx]
                 frame_values, frame_counts = np.unique(frame_data, return_counts = True)
                 csvwriter.writerow(frame_values)

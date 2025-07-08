@@ -1,11 +1,12 @@
 import numpy as np
-import matplotlib
-matplotlib.set_loglevel("critical")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import csv, os, functools, builtins
 from skimage.measure import label, regionprops
 from scipy import ndimage
+import matplotlib
+matplotlib.use('Agg')
+
 
 class MyException(Exception):
     pass
@@ -152,6 +153,7 @@ def track_void(image, name, threshold, step, return_graphs, save_intermediates):
             comp_axs[0].imshow(new_image)
             comp_axs[1].imshow(new_frame)
             plt.savefig(os.path.join(name, 'Binarization Frame ' + str(i) + ' Comparison.png'))
+            plt.close('all')
         
         if save_intermediates:
             csvwriter.writerow([str(i)])

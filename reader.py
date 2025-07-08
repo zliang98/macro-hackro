@@ -3,19 +3,16 @@ import imageio.v3 as iio
 import numpy as np
 import nd2
 
-def read_file(file_path, count, total_count, accept_dim = False, allow_large_files = True):
+def read_file(file_path, count_list, accept_dim = False, allow_large_files = True):
     print = functools.partial(builtins.print, flush=True)
-    acceptable_formats = ('.tif', '.nd2')
-    accept_endings = ["failed_files.txt", "time.txt", ".csv", ".yaml", "Flow Field.png", "Summary Graphs.png", "Comparison.png", "Thumbs.db"]
-    for ending in accept_endings:
-        if file_path.endswith(ending) or 'Barcode_channel_' in file_path:
-            return None
+    acceptable_formats = ('.tif', '.nd2', '.tiff')
     
-    print(f'File {count} of {total_count}')
-    print(file_path)
     if (os.path.exists(file_path) and file_path.endswith(acceptable_formats)) == False:
-        print("Invalid format: files must be .tif or .nd2.")
         return None
+    
+
+    print(f'File {count_list[0]} of {count_list[1]}')
+    print(file_path)
 
     file_size = os.path.getsize(file_path)
     file_size_gb = file_size / (1024 ** 3)
@@ -37,10 +34,13 @@ def read_file(file_path, count, total_count, accept_dim = False, allow_large_fil
         try:
             with nd2.ND2File(file_path) as ndfile:
                 if len(ndfile.sizes) >= 5:
+                    count_list[0] += 1
                     raise TypeError("Incorrect file dimensions: file must be time series data with 1+ channels (4 dimensions total)")
                 if "Z" in ndfile.sizes:
+                    count_list[0] += 1
                     raise TypeError('Z-stack identified, skipping to next file...')
                 if 'T' not in ndfile.sizes or len(ndfile.shape) <= 2 or ndfile.sizes['T'] <= 5:
+                    count_list[0] += 1
                     raise TypeError('Too few frames, unable to capture dynamics, skipping to next file...')
                 if ndfile == None:
                     raise TypeError('Unable to read file, skipping to next file...')
@@ -63,4 +63,5 @@ def read_file(file_path, count, total_count, accept_dim = False, allow_large_fil
         return None
         
     else:
+        count_list[0] += 1
         return file
