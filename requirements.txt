@@ -1,7 +1,7 @@
-Gooey==1.0.8.1
 imageio==2.34.1
 matplotlib==3.8.4
 nd2reader==3.3.0
+nd2==0.10.1
 numpy==2.0.1
 opencv_python==4.9.0.80
 PIMS==0.6.1
