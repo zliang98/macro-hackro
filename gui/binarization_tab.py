@@ -244,6 +244,7 @@ def create_binarization_frame(
     load_preview_frame()
 
     # Other binarization settings
+
     tk.Label(frame, text="Frame Step (res_f_step) [min=1]:").grid(
         row=row_b, column=0, sticky="w", padx=5, pady=5
     )
@@ -281,5 +282,32 @@ def create_binarization_frame(
         width=7,
     )
     pf_stop_spin.grid(row=row_b, column=1, padx=5, pady=5)
+    row_b += 1
+
+    tk.Label(frame, text="Binning Factor:").grid(
+        row=row_b, column=0, sticky="w", padx=5, pady=5
+    )
+
+    binning_choices = [2, 4, 8]
+
+    # --- ADD THESE DEBUG PRINTS ---
+    print("\n--- Binarization Combobox Debug ---")
+    print(f"DEBUG: Type of cb.binning_number: {type(cb.binning_number)}")
+    print(f"DEBUG: Current value of cb.binning_number: {cb.binning_number.get()}")
+    print(f"DEBUG: binning_choices (values for Combobox): {binning_choices}")
+    print(f"DEBUG: Are all binning_choices integers? {[isinstance(x, int) for x in binning_choices]}")
+    print(f"DEBUG: Is current value in choices? {cb.binning_number.get() in binning_choices}")
+    print("-----------------------------------\n")
+    # --- END DEBUG PRINTS ---
+
+    binning_menu = ttk.Combobox(
+        frame,
+        textvariable=cb.binning_number,
+        values=binning_choices,
+        width=5,
+        state="readonly"  # force selection from list
+    )
+    binning_menu.grid(row=row_b, column=1, padx=5, pady=5)
+
 
     return frame
