@@ -91,7 +91,7 @@ def create_binarization_frame(
     # Live preview setup
     preview_title = tk.Label(frame, text="Dynamic preview of first-frame binarization:")
     preview_title.grid(
-        row=row_b, column=0, columnspan=2, padx=5, pady=(10, 2), sticky="w"
+        row=row_b, column=0, columnspan=3, padx=5, pady=(10, 2), sticky="w"
     )
     row_b += 1
 
@@ -102,6 +102,9 @@ def create_binarization_frame(
     tk.Label(frame, text="Binarized").grid(
         row=row_b, column=1, padx=5, pady=2, sticky="n"
     )
+    tk.Label(frame, text="Filtered").grid(
+        row=row_b, column=2, padx=5, pady=2, sticky="n"
+    )
     row_b += 1
 
     # Get background color for matplotlib figures
@@ -109,7 +112,6 @@ def create_binarization_frame(
     bg_name = root.cget("bg")
     r, g, b = root.winfo_rgb(bg_name)
     bg_color = (r / 65535, g / 65535, b / 65535)
-
     # Original image figure
     fig_orig = Figure(figsize=(3, 3), facecolor=bg_color)
     ax_orig = fig_orig.add_subplot(111)
@@ -134,12 +136,25 @@ def create_binarization_frame(
     ax_bin.imshow(np.zeros((10, 10)), cmap="gray")
     fig_bin.tight_layout()
 
+    # Filtered image figure
+    fig_filt = Figure(figsize=(3, 3), facecolor=bg_color)
+    ax_filt = fig_filt.add_subplot(111)
+    ax_filt.set_facecolor(bg_color)
+    ax_filt.axis("off")
+
+    canvas_filt = FigureCanvasTkAgg(fig_filt, master=frame)
+    canvas_filt.draw()
+    canvas_filt.get_tk_widget().grid(row=row_b, column=2, padx=5, pady=(10, 5))
+    ax_filt.imshow(np.zeros((10, 10)), cmap="gray")
+    fig_filt.tight_layout()
+
+
     preview_label = tk.Label(
         frame,
         text="Upload file to see binarization threshold preview.",
         compound="center",
     )
-    preview_label.grid(row=row_b, column=0, columnspan=2, padx=5, pady=(10, 5))
+    preview_label.grid(row=row_b, column=0, columnspan=3, padx=5, pady=(10, 5))
     row_b += 1
 
     # Preview functionality
@@ -156,6 +171,10 @@ def create_binarization_frame(
             ax_bin.set_facecolor(bg_color)
             ax_bin.axis("off")
             canvas_bin.draw()
+            ax_filt.clear()
+            ax_filt.set_facecolor(bg_color)
+            ax_filt.axis("off")
+            canvas_filt.draw()
             preview_label.config(
                 image="", text="Upload file to see binarization threshold preview."
             )
@@ -185,6 +204,16 @@ def create_binarization_frame(
         ax_bin.axis("off")
         fig_bin.tight_layout()
         canvas_bin.draw()
+
+        # Show filtered image
+        offset = cb.threshold_offset.get()
+        filt_arr = binarize(img, offset)
+        small_filt = filt_arr[::scale, ::scale]
+        ax_filt.clear()
+        ax_filt.imshow(small_filt, cmap="gray", interpolation="nearest")
+        ax_filt.axis("off")
+        fig_filt.tight_layout()
+        canvas_filt.draw()
 
     def load_preview_frame(*args):
         # Load first frame of selected file
