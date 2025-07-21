@@ -180,10 +180,12 @@ def track_void(
     connected_lst = []
     region_lst = []
 
+#########added binning factor
     # Process each frame
     for frame_idx in frame_indices:
         # Binarize and downsample frame
-        downsampled_frame = group_avg(image[frame_idx], 2)
+        binning_factor = config.binarization.binning_number.get()
+        downsampled_frame = group_avg(image[frame_idx], binning_factor)
         binarized_frame = binarize(downsampled_frame, threshold)
         
 
