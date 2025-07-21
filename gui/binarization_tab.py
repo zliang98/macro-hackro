@@ -290,15 +290,7 @@ def create_binarization_frame(
 
     binning_choices = [2, 4, 8]
 
-    # --- ADD THESE DEBUG PRINTS ---
-    print("\n--- Binarization Combobox Debug ---")
-    print(f"DEBUG: Type of cb.binning_number: {type(cb.binning_number)}")
-    print(f"DEBUG: Current value of cb.binning_number: {cb.binning_number.get()}")
-    print(f"DEBUG: binning_choices (values for Combobox): {binning_choices}")
-    print(f"DEBUG: Are all binning_choices integers? {[isinstance(x, int) for x in binning_choices]}")
-    print(f"DEBUG: Is current value in choices? {cb.binning_number.get() in binning_choices}")
-    print("-----------------------------------\n")
-    # --- END DEBUG PRINTS ---
+
 
     binning_menu = ttk.Combobox(
         frame,
@@ -308,6 +300,8 @@ def create_binarization_frame(
         state="readonly"  # force selection from list
     )
     binning_menu.grid(row=row_b, column=1, padx=5, pady=5)
+
+
 
 
     return frame
