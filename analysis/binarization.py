@@ -183,19 +183,18 @@ def track_void(
 
 #########added binning factor
     # Process each frame
-
     for frame_idx in frame_indices:
         # Binarize and downsample frame       
         downsampled_frame = group_avg(image[frame_idx], binning_factor)
         binarized_frame = binarize(downsampled_frame, threshold) 
         filtered_frame=morphology.remove_small_objects(binarized_frame>0, min_size=int(area_size))
         # Analyze frame metrics
+        
         metrics = analyze_binarized_frame(binarized_frame>0)
-        #filtered_frame=filtered_frame.astype(int)
         # Write CSV data if enabled
         if csvwriter:
             write_binarization_data(csvwriter, filtered_frame.astype(int), frame_idx)
-            #print('csv written')
+          
         # Save visualization if this is a key frame
         if frame_idx in save_frames:
             from visualization import save_binarization_visualization
@@ -203,8 +202,6 @@ def track_void(
             save_binarization_visualization(
                 image[frame_idx], filtered_frame, frame_idx, name
             )
-
-
 
         # Collect metrics
         void_lst.append(metrics.void_area)
