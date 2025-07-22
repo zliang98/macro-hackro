@@ -184,23 +184,23 @@ def track_void(
     # Process each frame
     for frame_idx in frame_indices:
         # Binarize and downsample frame
-        binarized_frame = binarize(image[frame_idx], threshold)
-        downsampled_frame = group_avg(binarized_frame, 2, bin_mask=True)
+        downsampled_frame = group_avg(image[frame_idx], 2)
+        binarized_frame = binarize(downsampled_frame, threshold)
 
         # Analyze frame metrics
-        metrics = analyze_binarized_frame(downsampled_frame)
+        metrics = analyze_binarized_frame(binarized_frame)
 
         # Save visualization if this is a key frame
         if frame_idx in save_frames:
             from visualization import save_binarization_visualization
 
             save_binarization_visualization(
-                image[frame_idx], downsampled_frame, frame_idx, name
+                image[frame_idx], binarized_frame, frame_idx, name
             )
 
         # Write CSV data if enabled
         if csvwriter:
-            write_binarization_data(csvwriter, downsampled_frame, frame_idx)
+            write_binarization_data(csvwriter, binarized_frame, frame_idx)
 
         # Collect metrics
         void_lst.append(metrics.void_area)

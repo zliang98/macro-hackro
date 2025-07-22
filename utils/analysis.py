@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 from scipy.stats import mode
-
+from skimage.measure import label, regionprops
 
 def inv(arr: np.ndarray) -> np.ndarray:
     """Invert a binary array."""
@@ -27,6 +27,11 @@ def binarize(frame: np.ndarray, offset_threshold: float) -> np.ndarray:
     avg_intensity = np.mean(frame)
     threshold = avg_intensity * (1 + offset_threshold)
     new_frame = np.where(frame < threshold, 0, 1)
+    labeled_frame = label(new_frame, connectivity=2)
+    regions = regionprops(labeled_frame)
+    for region in regions:
+        if region.area == 1:
+            new_frame[labeled_frame == region.label] = 0
     return new_frame
 
 
