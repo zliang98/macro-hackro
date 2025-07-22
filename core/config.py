@@ -101,7 +101,7 @@ class BinarizationConfig(BaseConfig):
     frame_start_percent: float = 0.9  # 0.5 to 0.9
     frame_stop_percent: float = 1.0  # 0.9 to 1.0
     binning_number: int = 2 # 2, 4, 8 as the default
-    area_size: int = 5000 #default area size TO BE ADJUSTED BY USER ONCE WE FIGURE THIS OUT!
+    area_size: int = 500 #default area size TO BE ADJUSTED BY USER ONCE WE FIGURE THIS OUT!
 
 
 @dataclass

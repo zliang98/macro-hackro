@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage
 from skimage.measure import label, regionprops
-
+from skimage import io, color, filters, measure, morphology
 from utils.setup import setup_csv_writer
 from utils.analysis import inv, group_avg, binarize, top_ten_average
 from core import BinarizationConfig, OutputConfig, BinarizationResults
@@ -165,8 +165,9 @@ def track_void(
     """
     num_frames = len(image)
     threshold = bin_config.threshold_offset
+    area_size=bin_config.area_size
     step = bin_config.frame_step
-
+    binning_factor = bin_config.binning_number
     # Calculate which frames to process and visualize
     frame_indices = calculate_frame_indices(num_frames, step)
     save_frames = set()
@@ -182,27 +183,28 @@ def track_void(
 
 #########added binning factor
     # Process each frame
+
     for frame_idx in frame_indices:
-        # Binarize and downsample frame
-        binning_factor = config.binarization.binning_number.get()
+        # Binarize and downsample frame       
         downsampled_frame = group_avg(image[frame_idx], binning_factor)
-        binarized_frame = binarize(downsampled_frame, threshold)
-        
-
+        binarized_frame = binarize(downsampled_frame, threshold) 
+        filtered_frame=morphology.remove_small_objects(binarized_frame>0, min_size=int(area_size))
         # Analyze frame metrics
-        metrics = analyze_binarized_frame(binarized_frame)
-
+        metrics = analyze_binarized_frame(binarized_frame>0)
+        #filtered_frame=filtered_frame.astype(int)
+        # Write CSV data if enabled
+        if csvwriter:
+            write_binarization_data(csvwriter, filtered_frame.astype(int), frame_idx)
+            #print('csv written')
         # Save visualization if this is a key frame
         if frame_idx in save_frames:
             from visualization import save_binarization_visualization
 
             save_binarization_visualization(
-                image[frame_idx], binarized_frame, frame_idx, name
+                image[frame_idx], filtered_frame, frame_idx, name
             )
 
-        # Write CSV data if enabled
-        if csvwriter:
-            write_binarization_data(csvwriter, binarized_frame, frame_idx)
+
 
         # Collect metrics
         void_lst.append(metrics.void_area)
