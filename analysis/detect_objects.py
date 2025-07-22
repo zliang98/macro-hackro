@@ -2,14 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage import io, color, filters, measure, morphology
 
-# Load and binarize the image
-images = io.imread('generate_rotating_ellipsoids result - 5degreesperframe.tif')  # Or .jpg if already converted
-gray_image = images[0]
-#gray_image = color.rgb2gray(image)
-#thresh = filters.threshold_otsu(gray_image)
-
-minimum_size = 100
-
 def detect_objects(gray_image,minimum_size):
 
     thresh = 10
@@ -53,6 +45,14 @@ def detect_objects(gray_image,minimum_size):
     plt.show()
     
     #return the area, centroid, orientation of major axis for each object
-    return 
-    
-detect_objects(gray_image, 100)
+    return
+
+# Load and binarize the image
+images = io.imread('generate_rotating_ellipsoids result - 5degreesperframe.tif')  # Or .jpg if already converted
+gray_image = images[0]
+#gray_image = color.rgb2gray(image)
+#thresh = filters.threshold_otsu(gray_image)
+
+minimum_size = 2000
+
+detect_objects(gray_image, minimum_size)
